@@ -1,0 +1,117 @@
+const express = require("express");
+const compression = require("compression");
+const path = require("path");
+const fs = require("fs");
+
+require("dotenv").config();
+const connectDB = require("./config/database");
+const logger = require("./config/logger");
+
+const { errorHandler } = require("./middleware/errorHandler");
+const {
+  securityHeaders,
+  corsOptions,
+  generalLimiter,
+  sanitizeData,
+  preventParameterPollution,
+  sanitizeXSS,
+} = require("./middleware/security");
+const {
+  requestLogger,
+  requestId,
+  responseTime,
+} = require("./middleware/requestLogger");
+
+const authRoutes = require("./routes/authRoutes");
+const userRoutes = require("./routes/userRoutes");
+const apiRoutes = require("./routes/apiRoutes");
+
+const app = express();
+
+app.set("trust proxy", 1);
+
+const logsDir = path.join(__dirname, "..", "logs");
+if (!fs.existsSync(logsDir)) {
+  fs.mkdirSync(logsDir, { recursive: true });
+}
+
+app.use(requestId);
+app.use(responseTime);
+app.use(requestLogger);
+app.use(compression());
+app.use(securityHeaders);
+app.use(express.json({ limit: "10mb" }));
+app.use(express.urlencoded({ extended: true, limit: "10mb" }));
+app.use(sanitizeData);
+app.use(sanitizeXSS);
+app.use(preventParameterPollution);
+
+app.use(cors(corsOptions));
+
+// Rate limiting
+app.use("/api", generalLimiter);
+
+app.get("/health", (req, res) => {
+  res.status(200).json({
+    status: "success",
+    message: "Server is running",
+    timestamp: new Date().toISOString(),
+    requestId: req.requestId,
+  });
+});
+
+app.use("/api/auth", authRoutes);
+app.use("/api/users", userRoutes);
+app.use("/api", apiRoutes);
+
+if (process.env.NODE_ENV === "production") {
+  app.use(express.static(path.join(__dirname, "..", "public")));
+
+  app.get("*", (req, res) => {
+    res.sendFile(path.join(__dirname, "..", "public", "index.html"));
+  });
+}
+
+app.all("*", (req, res, next) => {
+  const error = new Error(`Can't find ${req.originalUrl} on this server!`);
+  error.statusCode = 404;
+  next(error);
+});
+
+app.use(errorHandler);
+
+const startServer = async () => {
+  try {
+    await connectDB();
+
+    const PORT = process.env.PORT || 3000;
+    const server = app.listen(PORT, () => {
+      logger.info(
+        `Server running on port ${PORT} in ${process.env.NODE_ENV} mode`
+      );
+    });
+
+    process.on("SIGTERM", () => {
+      logger.info("SIGTERM received. Shutting down gracefully...");
+      server.close(() => {
+        logger.info("Process terminated");
+        process.exit(0);
+      });
+    });
+
+    process.on("SIGINT", () => {
+      logger.info("SIGINT received. Shutting down gracefully...");
+      server.close(() => {
+        logger.info("Process terminated");
+        process.exit(0);
+      });
+    });
+  } catch (error) {
+    logger.error("Failed to start server:", error);
+    process.exit(1);
+  }
+};
+
+startServer();
+
+module.exports = app;
