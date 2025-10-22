@@ -100,6 +100,87 @@ const validateUserUpdate = () => {
   ];
 };
 
+// Student validation
+const validateStudent = () => {
+  return [
+    body("studentCode")
+      .trim()
+      .isLength({ min: 3, max: 20 })
+      .withMessage("Student code must be between 3 and 20 characters")
+      .matches(/^[A-Z0-9]+$/)
+      .withMessage(
+        "Student code must contain only uppercase letters and numbers"
+      ),
+    body("nama")
+      .trim()
+      .isLength({ min: 2, max: 100 })
+      .withMessage("Name must be between 2 and 100 characters"),
+    body("class").isMongoId().withMessage("Invalid class ID"),
+    handleValidationErrors,
+  ];
+};
+
+// Class validation
+const validateClass = () => {
+  return [
+    body("name")
+      .trim()
+      .isLength({ min: 2, max: 100 })
+      .withMessage("Class name must be between 2 and 100 characters"),
+    body("description")
+      .optional()
+      .trim()
+      .isLength({ max: 500 })
+      .withMessage("Description cannot exceed 500 characters"),
+    body("teacher").isMongoId().withMessage("Invalid teacher ID"),
+    body("capacity")
+      .optional()
+      .isInt({ min: 1, max: 100 })
+      .withMessage("Capacity must be between 1 and 100"),
+    handleValidationErrors,
+  ];
+};
+
+// Notification validation
+const validateNotificationRequest = () => {
+  return [
+    body("studentId").isMongoId().withMessage("Invalid student ID"),
+    body("message")
+      .optional()
+      .trim()
+      .isLength({ max: 500 })
+      .withMessage("Message cannot exceed 500 characters"),
+    handleValidationErrors,
+  ];
+};
+
+const validateNotificationResponse = () => {
+  return [
+    body("status")
+      .isIn(["approved", "rejected", "absent", "present"])
+      .withMessage("Invalid response status"),
+    body("responseMessage")
+      .optional()
+      .trim()
+      .isLength({ max: 500 })
+      .withMessage("Response message cannot exceed 500 characters"),
+    handleValidationErrors,
+  ];
+};
+
+const validateTeacherMessage = () => {
+  return [
+    body("receptionistId").isMongoId().withMessage("Invalid receptionist ID"),
+    body("studentId").isMongoId().withMessage("Invalid student ID"),
+    body("message")
+      .optional()
+      .trim()
+      .isLength({ max: 500 })
+      .withMessage("Message cannot exceed 500 characters"),
+    handleValidationErrors,
+  ];
+};
+
 module.exports = {
   handleValidationErrors,
   validateObjectId,
@@ -110,4 +191,9 @@ module.exports = {
   validateUserRegistration,
   validateUserLogin,
   validateUserUpdate,
+  validateStudent,
+  validateClass,
+  validateNotificationRequest,
+  validateNotificationResponse,
+  validateTeacherMessage,
 };

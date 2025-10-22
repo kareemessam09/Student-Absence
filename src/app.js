@@ -1,11 +1,15 @@
 const express = require("express");
 const compression = require("compression");
+const cors = require("cors");
 const path = require("path");
 const fs = require("fs");
 
 require("dotenv").config();
 const connectDB = require("./config/database");
 const logger = require("./config/logger");
+const { initSocket } = require("./config/socket");
+const swaggerUi = require("swagger-ui-express");
+const swaggerSpec = require("./config/swagger");
 
 const { errorHandler } = require("./middleware/errorHandler");
 const {
@@ -24,6 +28,9 @@ const {
 
 const authRoutes = require("./routes/authRoutes");
 const userRoutes = require("./routes/userRoutes");
+const studentRoutes = require("./routes/studentRoutes");
+const classRoutes = require("./routes/classRoutes");
+const notificationRoutes = require("./routes/notificationRoutes");
 const apiRoutes = require("./routes/apiRoutes");
 
 const app = express();
@@ -51,6 +58,9 @@ app.use(cors(corsOptions));
 // Rate limiting
 app.use("/api", generalLimiter);
 
+// Swagger UI
+app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+
 app.get("/health", (req, res) => {
   res.status(200).json({
     status: "success",
@@ -62,6 +72,9 @@ app.get("/health", (req, res) => {
 
 app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
+app.use("/api/students", studentRoutes);
+app.use("/api/classes", classRoutes);
+app.use("/api/notifications", notificationRoutes);
 app.use("/api", apiRoutes);
 
 if (process.env.NODE_ENV === "production") {
@@ -89,7 +102,11 @@ const startServer = async () => {
       logger.info(
         `Server running on port ${PORT} in ${process.env.NODE_ENV} mode`
       );
+      logger.info(`Swagger UI available at /api-docs`);
     });
+
+    // Initialize websocket server
+    initSocket(server);
 
     process.on("SIGTERM", () => {
       logger.info("SIGTERM received. Shutting down gracefully...");
