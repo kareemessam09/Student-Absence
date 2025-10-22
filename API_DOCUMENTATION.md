@@ -234,17 +234,85 @@ Authorization: Bearer <teacher-token>
 
 ## WebSocket (Socket.IO)
 
-Connect to the server using Socket.IO client and pass `userId` in `auth` (preferred) or query:
+Connection
+
+- URL: same host as API
+- Namespace: default (`/`)
+- Room model: each user joins `user:{userId}` automatically on connect
+- Authentication: pass `userId` in the `auth` payload (current implementation)
 
 ```javascript
-const socket = io(BASE_URL, { auth: { userId: CURRENT_USER_ID } });
+import { io } from "socket.io-client";
+
+// Using auth payload (recommended for this build)
+const socket = io(BASE_URL, {
+  auth: { userId: CURRENT_USER_ID },
+});
+
+socket.on("connect", () => {
+  console.log("connected", socket.id);
+});
 ```
 
-Events emitted by server:
+Events emitted by server
 
-- `notification:new` (to teacher when receptionist sends request; to receptionist when teacher sends message)
-  - Payload: `{ id, type, status, student: { id, studentCode, nama }, class: { id, name }, message, createdAt }`
-- `notification:updated` (to requester when recipient responds)
-  - Payload: `{ id, status, responseMessage, responseDate }`
-- `notification:read` (to sender when recipient reads)
-  - Payload: `{ id, readBy, readAt }`
+- `notification:new`
+
+  - When: receptionist sends request to teacher OR teacher sends message to receptionist
+  - Payload:
+    ```json
+    {
+      "id": "notification_id",
+      "type": "request|message",
+      "status": "pending",
+      "student": { "id": "...", "studentCode": "STU001", "nama": "John Doe" },
+      "class": { "id": "...", "name": "Class A" },
+      "message": "...",
+      "createdAt": "2025-01-01T00:00:00.000Z"
+    }
+    ```
+
+- `notification:updated`
+
+  - When: teacher responds to a receptionist request
+  - Payload:
+    ```json
+    {
+      "id": "notification_id",
+      "status": "approved|rejected|absent|present",
+      "responseMessage": "...",
+      "responseDate": "2025-01-01T00:05:00.000Z"
+    }
+    ```
+
+- `notification:read`
+  - When: recipient opens/reads the notification; sent to the original sender
+  - Payload:
+    ```json
+    {
+      "id": "notification_id",
+      "readBy": "user_id",
+      "readAt": "2025-01-01T00:06:00.000Z"
+    }
+    ```
+
+Client examples
+
+```javascript
+socket.on("notification:new", (evt) => {
+  // update badge, show toast, refetch list, etc.
+});
+
+socket.on("notification:updated", (evt) => {
+  // update the specific notification status in UI
+});
+
+socket.on("notification:read", (evt) => {
+  // optionally mark sent notification as read in sender view
+});
+```
+
+Notes
+
+- Reconnection is handled by Socket.IO client by default.
+- For production, consider authenticating sockets with JWT and deriving `userId` server-side during the handshake.
