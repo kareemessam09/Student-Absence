@@ -145,6 +145,42 @@ const removeStudentFromClass = async (req, res, next) => {
   }
 };
 
+// @desc    Assign/Unassign teacher to class (self-assignment)
+// @route   PUT /api/classes/:id/assign-teacher
+// @access  Private/Teacher
+const assignTeacherToClass = async (req, res, next) => {
+  try {
+    const { assign } = req.body;
+    const classId = req.params.id;
+    const teacherId = req.user.id; // Get from authenticated user
+
+    // Validate assign parameter
+    if (typeof assign !== 'boolean') {
+      return res.status(400).json({
+        status: "fail",
+        message: "Please provide 'assign' field as boolean (true/false)",
+      });
+    }
+
+    const classData = await classService.assignTeacherToClass(
+      classId,
+      teacherId,
+      assign
+    );
+
+    const action = assign ? "assigned to" : "unassigned from";
+    logger.info(`Teacher ${teacherId} ${action} class ${classId}`);
+
+    res.status(200).json({
+      status: "success",
+      message: `Successfully ${action} class`,
+      data: { class: classData },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   getAllClasses,
   getClass,
@@ -154,4 +190,5 @@ module.exports = {
   getClassesByTeacher,
   addStudentToClass,
   removeStudentFromClass,
+  assignTeacherToClass,
 };

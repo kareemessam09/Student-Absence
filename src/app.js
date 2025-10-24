@@ -15,7 +15,7 @@ const { errorHandler } = require("./middleware/errorHandler");
 const {
   securityHeaders,
   corsOptions,
-  generalLimiter,
+  // generalLimiter, // DISABLED
   sanitizeData,
   preventParameterPollution,
   sanitizeXSS,
@@ -31,7 +31,9 @@ const userRoutes = require("./routes/userRoutes");
 const studentRoutes = require("./routes/studentRoutes");
 const classRoutes = require("./routes/classRoutes");
 const notificationRoutes = require("./routes/notificationRoutes");
+const statisticsRoutes = require("./routes/statisticsRoutes");
 const apiRoutes = require("./routes/apiRoutes");
+const { scheduleNotificationCleanup } = require("./services/schedulerService");
 
 const app = express();
 
@@ -55,8 +57,8 @@ app.use(preventParameterPollution);
 
 app.use(cors(corsOptions));
 
-// Rate limiting
-app.use("/api", generalLimiter);
+// Rate limiting - DISABLED
+// app.use("/api", generalLimiter);
 
 // Swagger UI
 app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
@@ -75,6 +77,7 @@ app.use("/api/users", userRoutes);
 app.use("/api/students", studentRoutes);
 app.use("/api/classes", classRoutes);
 app.use("/api/notifications", notificationRoutes);
+app.use("/api/statistics", statisticsRoutes);
 app.use("/api", apiRoutes);
 
 if (process.env.NODE_ENV === "production") {
@@ -96,6 +99,9 @@ app.use(errorHandler);
 const startServer = async () => {
   try {
     await connectDB();
+
+    // Initialize scheduled tasks
+    scheduleNotificationCleanup();
 
     const PORT = process.env.PORT || 3000;
     const server = app.listen(PORT, () => {

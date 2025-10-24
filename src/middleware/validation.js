@@ -59,29 +59,33 @@ const validatePagination = () => {
 };
 
 // User registration validation
-const validateUserRegistration = () => {
-  return [
-    validateName("name"),
-    validateEmail("email"),
-    validatePassword("password"),
-    body("confirmPassword").custom((value, { req }) => {
-      if (value !== req.body.password) {
-        throw new Error("Password confirmation does not match password");
-      }
-      return true;
-    }),
-    handleValidationErrors,
-  ];
-};
+const validateUserRegistration = [
+  body("name")
+    .trim()
+    .isLength({ min: 2, max: 50 })
+    .withMessage("Name must be between 2 and 50 characters"),
+  body("email")
+    .isEmail()
+    .normalizeEmail()
+    .withMessage("Please provide a valid email"),
+  body("password")
+    .isLength({ min: 8 })
+    .withMessage("Password must be at least 8 characters long"),
+  body("role")
+    .isIn(["teacher", "manager", "receptionist"])
+    .withMessage("Invalid role"),
+  handleValidationErrors,
+];
 
 // User login validation
-const validateUserLogin = () => {
-  return [
-    validateEmail("email"),
-    body("password").notEmpty().withMessage("Password is required"),
-    handleValidationErrors,
-  ];
-};
+const validateUserLogin = [
+  body("email")
+    .isEmail()
+    .normalizeEmail()
+    .withMessage("Please provide a valid email"),
+  body("password").notEmpty().withMessage("Password is required"),
+  handleValidationErrors,
+];
 
 // Update user validation
 const validateUserUpdate = () => {
@@ -156,9 +160,9 @@ const validateNotificationRequest = () => {
 
 const validateNotificationResponse = () => {
   return [
-    body("status")
-      .isIn(["approved", "rejected", "absent", "present"])
-      .withMessage("Invalid response status"),
+    body("approved")
+      .isBoolean()
+      .withMessage("Approved field must be a boolean (true or false)"),
     body("responseMessage")
       .optional()
       .trim()

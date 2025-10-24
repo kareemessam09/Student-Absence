@@ -1,0 +1,206 @@
+### Test API Endpoints
+### You can use this file with REST Client extension in VS Code
+### Or copy the curl commands to your terminal
+
+@baseUrl = http://localhost:3000/api
+@token = YOUR_TOKEN_HERE
+
+### Health Check
+GET http://localhost:3000/health
+
+### ==========================================
+### AUTHENTICATION
+### ==========================================
+
+### 1. Login as Manager
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "manager@school.com",
+  "password": "password123"
+}
+
+### 2. Login as Teacher
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "teacher1@school.com",
+  "password": "password123"
+}
+
+### 3. Login as Receptionist
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "receptionist@school.com",
+  "password": "password123"
+}
+
+### 4. Register New User (Manager only)
+POST {{baseUrl}}/auth/register
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "name": "New Teacher",
+  "email": "newteacher@school.com",
+  "password": "password123",
+  "role": "teacher"
+}
+
+### ==========================================
+### STUDENTS
+### ==========================================
+
+### 5. Get All Students
+GET {{baseUrl}}/students
+Authorization: Bearer {{token}}
+
+### 6. Get All Students (with pagination)
+GET {{baseUrl}}/students?page=1&limit=5
+Authorization: Bearer {{token}}
+
+### 7. Get Student by ID
+GET {{baseUrl}}/students/STUDENT_ID_HERE
+Authorization: Bearer {{token}}
+
+### 8. Create New Student (Manager only)
+POST {{baseUrl}}/students
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "studentCode": "STU011",
+  "nama": "Test Student",
+  "class": "CLASS_ID_HERE",
+  "enrollmentDate": "2024-10-01"
+}
+
+### 9. Update Student (Manager only)
+PUT {{baseUrl}}/students/STUDENT_ID_HERE
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "nama": "Updated Student Name",
+  "isActive": true
+}
+
+### 10. Delete Student (Manager only)
+DELETE {{baseUrl}}/students/STUDENT_ID_HERE
+Authorization: Bearer {{token}}
+
+### ==========================================
+### CLASSES
+### ==========================================
+
+### 11. Get All Classes
+GET {{baseUrl}}/classes
+Authorization: Bearer {{token}}
+
+### 12. Get Class by ID
+GET {{baseUrl}}/classes/CLASS_ID_HERE
+Authorization: Bearer {{token}}
+
+### 13. Create New Class (Manager only)
+POST {{baseUrl}}/classes
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "name": "Biology 101",
+  "description": "Introduction to Biology",
+  "teacher": "TEACHER_ID_HERE",
+  "capacity": 25,
+  "startDate": "2024-10-01"
+}
+
+### 14. Update Class (Manager only)
+PUT {{baseUrl}}/classes/CLASS_ID_HERE
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "name": "Advanced Biology",
+  "capacity": 30
+}
+
+### 15. Add Student to Class (Manager only)
+POST {{baseUrl}}/classes/CLASS_ID_HERE/students
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "studentId": "STUDENT_ID_HERE"
+}
+
+### ==========================================
+### NOTIFICATIONS
+### ==========================================
+
+### 16. Get My Notifications
+GET {{baseUrl}}/notifications
+Authorization: Bearer {{token}}
+
+### 17. Get Unread Notification Count
+GET {{baseUrl}}/notifications/unread/count
+Authorization: Bearer {{token}}
+
+### 18. Send Request to Teacher (Receptionist only)
+POST {{baseUrl}}/notifications/request
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "studentId": "STUDENT_ID_HERE",
+  "message": "Is this student present in class?"
+}
+
+### 19. Respond to Notification (Teacher only)
+PUT {{baseUrl}}/notifications/NOTIFICATION_ID_HERE/respond
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "status": "present",
+  "responseMessage": "Yes, the student is present"
+}
+
+### 20. Send Message to Receptionist (Teacher only)
+POST {{baseUrl}}/notifications/message
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "receptionistId": "RECEPTIONIST_ID_HERE",
+  "studentId": "STUDENT_ID_HERE",
+  "message": "Please send this student to the office"
+}
+
+### 21. Mark Notification as Read
+PUT {{baseUrl}}/notifications/NOTIFICATION_ID_HERE/read
+Authorization: Bearer {{token}}
+
+### ==========================================
+### USERS
+### ==========================================
+
+### 22. Get My Profile
+GET {{baseUrl}}/users/profile/me
+Authorization: Bearer {{token}}
+
+### 23. Get All Users (Manager only)
+GET {{baseUrl}}/users
+Authorization: Bearer {{token}}
+
+### 24. Update My Profile
+PUT {{baseUrl}}/users/profile/me
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "name": "Updated Name"
+}

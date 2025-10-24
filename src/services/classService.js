@@ -127,6 +127,42 @@ const removeStudentFromClass = async (classId, studentId) => {
   await student.save();
 };
 
+const assignTeacherToClass = async (classId, teacherId, assign) => {
+  const classData = await Class.findById(classId);
+  if (!classData) throw new AppError("Class not found", 404);
+
+  if (assign) {
+    // Assign teacher to class
+    // Verify the user is actually a teacher
+    const teacher = await User.findById(teacherId);
+    if (!teacher) throw new AppError("Teacher not found", 404);
+    if (teacher.role !== "teacher") {
+      throw new AppError("User is not a teacher", 400);
+    }
+
+    classData.teacher = teacherId;
+    await classData.save();
+  } else {
+    // Unassign teacher from class
+    // Verify the current teacher is the one trying to unassign
+    if (classData.teacher.toString() !== teacherId) {
+      throw new AppError(
+        "You can only unassign yourself from classes you are currently teaching",
+        403
+      );
+    }
+
+    // Set teacher to null and bypass validation
+    classData.teacher = null;
+    await classData.save({ validateBeforeSave: false });
+  }
+
+  // Populate and return
+  return await Class.findById(classId)
+    .populate("teacher", "name email")
+    .populate("students", "studentCode nama");
+};
+
 module.exports = {
   listClasses,
   getClassById,
@@ -136,4 +172,5 @@ module.exports = {
   listClassesByTeacher,
   addStudentToClass,
   removeStudentFromClass,
+  assignTeacherToClass,
 };

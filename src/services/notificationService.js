@@ -112,34 +112,46 @@ const respondToNotification = async ({
   }
 
   const notification = await Notification.findById(notificationId)
+    .populate("from", "name email role")
+    .populate("to", "name email role")
     .populate("student", "nama studentCode")
     .populate("class", "name");
+    
   if (!notification) throw new AppError("Notification not found", 404);
 
-  if (notification.to.toString() !== responderUserId) {
+  if (notification.to._id.toString() !== responderUserId) {
     throw new AppError(
-      "You can only respond to notifications sent to you",
+      "You are not authorized to respond to this notification",
       403
     );
   }
   if (notification.status !== "pending") {
-    throw new AppError("Notification has already been responded to", 400);
+    throw new AppError("This notification has already been responded to", 400);
   }
 
   notification.status = status;
   notification.responseMessage = responseMessage;
   notification.responseDate = new Date();
+  notification.isRead = true;
+  notification.type = "response";
   await notification.save();
 
+  // Reload to get populated fields after save
+  const updatedNotification = await Notification.findById(notificationId)
+    .populate("from", "name email role")
+    .populate("to", "name email role")
+    .populate("student", "nama studentCode")
+    .populate("class", "name");
+
   // Emit real-time event to the requester
-  emitToUser(String(notification.from), "notification:updated", {
-    id: notification._id,
-    status: notification.status,
-    responseMessage: notification.responseMessage,
-    responseDate: notification.responseDate,
+  emitToUser(String(notification.from._id), "notification:updated", {
+    id: updatedNotification._id,
+    status: updatedNotification.status,
+    responseMessage: updatedNotification.responseMessage,
+    responseDate: updatedNotification.responseDate,
   });
 
-  return notification;
+  return updatedNotification;
 };
 
 const listNotificationsForUser = async ({

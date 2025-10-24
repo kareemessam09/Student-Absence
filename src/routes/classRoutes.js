@@ -8,6 +8,7 @@ const {
   getClassesByTeacher,
   addStudentToClass,
   removeStudentFromClass,
+  assignTeacherToClass,
 } = require("../controllers/classController");
 const { verifyToken, authorize } = require("../middleware/auth");
 const {
@@ -29,6 +30,14 @@ router.get(
   getClassesByTeacher
 );
 router.get("/:id", validateObjectId(), getClass);
+
+// Teacher self-assignment route (Teacher only) - MUST be before /:id route
+router.put(
+  "/:id/assign-teacher",
+  authorize("teacher"),
+  validateObjectId(),
+  assignTeacherToClass
+);
 
 // Manager only routes
 router.post("/", authorize("manager"), validateClass(), createClass);

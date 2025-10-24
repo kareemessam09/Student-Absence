@@ -19,6 +19,16 @@ const studentSchema = new mongoose.Schema(
       trim: true,
       maxlength: [100, "Name cannot be more than 100 characters"],
     },
+    nameArabic: {
+      type: String,
+      trim: true,
+      maxlength: [100, "Arabic name cannot be more than 100 characters"],
+    },
+    nameEnglish: {
+      type: String,
+      trim: true,
+      maxlength: [100, "English name cannot be more than 100 characters"],
+    },
     class: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Class",

@@ -9,7 +9,7 @@ const {
   resetPassword,
 } = require("../controllers/authController");
 const { verifyToken } = require("../middleware/auth");
-const { authLimiter } = require("../middleware/security");
+// const { authLimiter } = require("../middleware/security"); // DISABLED
 const {
   validateUserRegistration,
   validateUserLogin,
@@ -17,8 +17,8 @@ const {
 
 const router = express.Router();
 
-// Apply rate limiting to auth routes
-router.use(authLimiter);
+// Apply rate limiting to auth routes - DISABLED
+// router.use(authLimiter);
 
 // Public routes
 router.post("/register", validateUserRegistration, register);

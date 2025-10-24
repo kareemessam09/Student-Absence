@@ -1,11 +1,11 @@
 const express = require("express");
 const { verifyToken, optionalAuth } = require("../middleware/auth");
-const { apiLimiter } = require("../middleware/security");
+// const { apiLimiter } = require("../middleware/security"); // DISABLED
 
 const router = express.Router();
 
-// Apply rate limiting to API routes
-router.use(apiLimiter);
+// Apply rate limiting to API routes - DISABLED
+// router.use(apiLimiter);
 
 // @desc    Get API info
 // @route   GET /api

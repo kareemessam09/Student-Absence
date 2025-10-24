@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Absence API - Test Client</title>
+    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: #f5f5f5;
+            padding: 20px;
+        }
+        .container { max-width: 1200px; margin: 0 auto; }
+        .card {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        h1 { color: #333; margin-bottom: 10px; }
+        h2 { color: #555; margin-bottom: 15px; font-size: 1.2em; }
+        .status { padding: 8px 12px; border-radius: 4px; margin-bottom: 20px; }
+        .status.disconnected { background: #fee; color: #c33; }
+        .status.connected { background: #efe; color: #3c3; }
+        .login-form, .actions { display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap; }
+        input, select, textarea {
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        input[type="text"], input[type="email"], input[type="password"], select, textarea {
+            flex: 1;
+            min-width: 200px;
+        }
+        button {
+            padding: 10px 20px;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        button:hover { background: #0056b3; }
+        button:disabled { background: #ccc; cursor: not-allowed; }
+        .response {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 4px;
+            max-height: 400px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 12px;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        .user-info {
+            background: #e7f3ff;
+            padding: 10px;
+            border-radius: 4px;
+            margin-bottom: 15px;
+        }
+        .badge {
+            background: #dc3545;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            margin-left: 8px;
+        }
+        .notification {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 10px;
+            margin-bottom: 10px;
+            border-radius: 4px;
+        }
+        .notification.read { opacity: 0.6; }
+        .quick-actions { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; }
+        .quick-action {
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 4px;
+            cursor: pointer;
+            text-align: center;
+            border: 2px solid #dee2e6;
+        }
+        .quick-action:hover { background: #e9ecef; }
+        .role-badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        .role-manager { background: #6f42c1; color: white; }
+        .role-teacher { background: #0dcaf0; color: white; }
+        .role-receptionist { background: #20c997; color: white; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎓 Student Absence API - Test Client</h1>
+        
+        <!-- Status -->
+        <div class="card">
+            <div id="status" class="status disconnected">❌ Not logged in</div>
+            <div id="userInfo" style="display: none;" class="user-info"></div>
+        </div>
+
+        <!-- Login -->
+        <div class="card" id="loginCard">
+            <h2>🔐 Login</h2>
+            <div class="login-form">
+                <input type="email" id="email" placeholder="Email" value="manager@school.com">
+                <input type="password" id="password" placeholder="Password" value="password123">
+                <button onclick="login()">Login</button>
+            </div>
+            <div style="margin-top: 10px; font-size: 12px; color: #666;">
+                <strong>Test Credentials:</strong><br>
+                Manager: manager@school.com / password123<br>
+                Teacher: teacher1@school.com / password123<br>
+                Receptionist: receptionist@school.com / password123
+            </div>
+        </div>
+
+        <!-- Main Content (hidden until login) -->
+        <div id="mainContent" style="display: none;">
+            
+            <!-- Quick Actions -->
+            <div class="card">
+                <h2>⚡ Quick Actions</h2>
+                <div class="quick-actions">
+                    <div class="quick-action" onclick="getStudents()">
+                        📚 Get All Students
+                    </div>
+                    <div class="quick-action" onclick="getClasses()">
+                        🏫 Get All Classes
+                    </div>
+                    <div class="quick-action" onclick="getNotifications()">
+                        🔔 Get Notifications
+                        <span id="unreadBadge" class="badge" style="display: none;">0</span>
+                    </div>
+                    <div class="quick-action" onclick="getMyProfile()">
+                        👤 My Profile
+                    </div>
+                </div>
+            </div>
+
+            <!-- Custom Request -->
+            <div class="card">
+                <h2>🚀 Custom API Request</h2>
+                <div class="actions">
+                    <select id="method">
+                        <option value="GET">GET</option>
+                        <option value="POST">POST</option>
+                        <option value="PUT">PUT</option>
+                        <option value="DELETE">DELETE</option>
+                    </select>
+                    <input type="text" id="endpoint" placeholder="/students" value="/students">
+                    <button onclick="makeRequest()">Send Request</button>
+                </div>
+                <textarea id="requestBody" placeholder='Request body (JSON) - e.g. {"studentCode": "STU011", "nama": "Test Student"}' rows="3"></textarea>
+            </div>
+
+            <!-- Notifications Panel -->
+            <div class="card" id="notificationsPanel" style="display: none;">
+                <h2>🔔 Notifications</h2>
+                <div id="notificationsList"></div>
+            </div>
+
+            <!-- Response -->
+            <div class="card">
+                <h2>📝 Response</h2>
+                <div id="response" class="response">Response will appear here...</div>
+            </div>
+
+            <!-- Logout -->
+            <div class="card">
+                <button onclick="logout()" style="background: #dc3545;">Logout</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:3000/api';
+        let currentUser = null;
+        let socket = null;
+
+        // Get token from localStorage
+        function getToken() {
+            return localStorage.getItem('token');
+        }
+
+        // Set token to localStorage
+        function setToken(token) {
+            localStorage.setItem('token', token);
+        }
+
+        // Make API request
+        async function apiRequest(endpoint, options = {}) {
+            const url = `${API_BASE}${endpoint}`;
+            const headers = {
+                'Content-Type': 'application/json',
+                ...options.headers,
+            };
+
+            const token = getToken();
+            if (token && !options.skipAuth) {
+                headers['Authorization'] = `Bearer ${token}`;
+            }
+
+            const config = {
+                ...options,
+                headers,
+            };
+
+            try {
+                const response = await fetch(url, config);
+                const data = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(data.message || 'Request failed');
+                }
+                
+                return data;
+            } catch (error) {
+                throw error;
+            }
+        }
+
+        // Display response
+        function displayResponse(data) {
+            document.getElementById('response').textContent = JSON.stringify(data, null, 2);
+        }
+
+        // Login
+        async function login() {
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+
+            try {
+                const data = await apiRequest('/auth/login', {
+                    method: 'POST',
+                    body: JSON.stringify({ email, password }),
+                    skipAuth: true,
+                });
+
+                setToken(data.token);
+                currentUser = data.data.user;
+                
+                updateUI();
+                initSocket();
+                getUnreadCount();
+                
+                displayResponse(data);
+            } catch (error) {
+                alert('Login failed: ' + error.message);
+                displayResponse({ error: error.message });
+            }
+        }
+
+        // Logout
+        async function logout() {
+            try {
+                await apiRequest('/auth/logout', { method: 'POST' });
+            } catch (error) {
+                console.error('Logout error:', error);
+            }
+            
+            localStorage.clear();
+            currentUser = null;
+            
+            if (socket) {
+                socket.disconnect();
+                socket = null;
+            }
+            
+            updateUI();
+            displayResponse({ message: 'Logged out successfully' });
+        }
+
+        // Update UI based on login status
+        function updateUI() {
+            const isLoggedIn = !!currentUser;
+            
+            document.getElementById('loginCard').style.display = isLoggedIn ? 'none' : 'block';
+            document.getElementById('mainContent').style.display = isLoggedIn ? 'block' : 'none';
+            
+            const statusEl = document.getElementById('status');
+            const userInfoEl = document.getElementById('userInfo');
+            
+            if (isLoggedIn) {
+                statusEl.className = 'status connected';
+                statusEl.textContent = '✅ Connected';
+                
+                const roleClass = `role-${currentUser.role}`;
+                userInfoEl.innerHTML = `
+                    <strong>Logged in as:</strong> ${currentUser.name} (${currentUser.email})
+                    <span class="role-badge ${roleClass}">${currentUser.role.toUpperCase()}</span>
+                `;
+                userInfoEl.style.display = 'block';
+            } else {
+                statusEl.className = 'status disconnected';
+                statusEl.textContent = '❌ Not logged in';
+                userInfoEl.style.display = 'none';
+            }
+        }
+
+        // Initialize Socket.IO
+        function initSocket() {
+            if (!currentUser) return;
+
+            socket = io('http://localhost:3000', {
+                auth: { userId: currentUser._id }
+            });
+
+            socket.on('connect', () => {
+                console.log('✅ Socket connected:', socket.id);
+            });
+
+            socket.on('disconnect', () => {
+                console.log('❌ Socket disconnected');
+            });
+
+            socket.on('notification:new', (notification) => {
+                console.log('📨 New notification:', notification);
+                displayResponse({ event: 'notification:new', data: notification });
+                getUnreadCount();
+                showNotification('New notification received!', 'info');
+            });
+
+            socket.on('notification:updated', (notification) => {
+                console.log('🔄 Notification updated:', notification);
+                displayResponse({ event: 'notification:updated', data: notification });
+                showNotification('Notification updated!', 'success');
+            });
+
+            socket.on('notification:read', (data) => {
+                console.log('👁️ Notification read:', data);
+                displayResponse({ event: 'notification:read', data });
+            });
+        }
+
+        // Show toast notification
+        function showNotification(message, type) {
+            alert(message); // Simple alert for now
+        }
+
+        // Get unread count
+        async function getUnreadCount() {
+            try {
+                const data = await apiRequest('/notifications/unread/count');
+                const count = data.data.count;
+                const badge = document.getElementById('unreadBadge');
+                
+                if (count > 0) {
+                    badge.textContent = count;
+                    badge.style.display = 'inline';
+                } else {
+                    badge.style.display = 'none';
+                }
+            } catch (error) {
+                console.error('Error getting unread count:', error);
+            }
+        }
+
+        // Make custom request
+        async function makeRequest() {
+            const method = document.getElementById('method').value;
+            const endpoint = document.getElementById('endpoint').value;
+            const bodyText = document.getElementById('requestBody').value;
+
+            const options = { method };
+            
+            if (bodyText && (method === 'POST' || method === 'PUT')) {
+                try {
+                    options.body = bodyText;
+                } catch (error) {
+                    alert('Invalid JSON in request body');
+                    return;
+                }
+            }
+
+            try {
+                const data = await apiRequest(endpoint, options);
+                displayResponse(data);
+            } catch (error) {
+                displayResponse({ error: error.message });
+            }
+        }
+
+        // Quick actions
+        async function getStudents() {
+            try {
+                const data = await apiRequest('/students?page=1&limit=10');
+                displayResponse(data);
+            } catch (error) {
+                displayResponse({ error: error.message });
+            }
+        }
+
+        async function getClasses() {
+            try {
+                const data = await apiRequest('/classes?page=1&limit=10');
+                displayResponse(data);
+            } catch (error) {
+                displayResponse({ error: error.message });
+            }
+        }
+
+        async function getNotifications() {
+            try {
+                const data = await apiRequest('/notifications?page=1&limit=10');
+                displayResponse(data);
+                
+                // Display notifications in panel
+                const panel = document.getElementById('notificationsPanel');
+                const list = document.getElementById('notificationsList');
+                panel.style.display = 'block';
+                
+                if (data.data.notifications.length > 0) {
+                    list.innerHTML = data.data.notifications.map(n => `
+                        <div class="notification ${n.isRead ? 'read' : ''}">
+                            <strong>${n.type.toUpperCase()}</strong> - ${n.status}<br>
+                            From: ${n.from.name} → To: ${n.to.name}<br>
+                            Student: ${n.student.nama} (${n.student.studentCode})<br>
+                            Message: ${n.message}<br>
+                            ${n.responseMessage ? `Response: ${n.responseMessage}<br>` : ''}
+                            <small>${new Date(n.createdAt).toLocaleString()}</small>
+                        </div>
+                    `).join('');
+                } else {
+                    list.innerHTML = '<p>No notifications</p>';
+                }
+                
+                getUnreadCount();
+            } catch (error) {
+                displayResponse({ error: error.message });
+            }
+        }
+
+        async function getMyProfile() {
+            try {
+                const data = await apiRequest('/users/profile/me');
+                displayResponse(data);
+            } catch (error) {
+                displayResponse({ error: error.message });
+            }
+        }
+
+        // Check if already logged in on page load
+        window.addEventListener('load', async () => {
+            const token = getToken();
+            if (token) {
+                try {
+                    const data = await apiRequest('/auth/me');
+                    currentUser = data.data.user;
+                    updateUI();
+                    initSocket();
+                    getUnreadCount();
+                    displayResponse({ message: 'Already logged in', user: currentUser });
+                } catch (error) {
+                    // Token expired
+                    localStorage.clear();
+                    updateUI();
+                }
+            } else {
+                updateUI();
+            }
+        });
+    </script>
+</body>
+</html>

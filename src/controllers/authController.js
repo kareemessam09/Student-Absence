@@ -4,15 +4,15 @@ const { AppError } = require("../middleware/errorHandler");
 const logger = require("../config/logger");
 
 // Generate JWT token
-const signToken = (id) => {
-  return jwt.sign({ id }, process.env.JWT_SECRET, {
+const signToken = (id, role) => {
+  return jwt.sign({ id, role }, process.env.JWT_SECRET, {
     expiresIn: process.env.JWT_EXPIRE || "7d",
   });
 };
 
 // Send token response
 const createSendToken = (user, statusCode, res) => {
-  const token = signToken(user._id);
+  const token = signToken(user._id, user.role);
 
   // Remove password from output
   user.password = undefined;
@@ -31,7 +31,7 @@ const createSendToken = (user, statusCode, res) => {
 // @access  Public
 const register = async (req, res, next) => {
   try {
-    const { name, email, password } = req.body;
+    const { name, email, password, role } = req.body;
 
     // Check if user already exists
     const existingUser = await User.findOne({ email });
@@ -44,9 +44,10 @@ const register = async (req, res, next) => {
       name,
       email,
       password,
+      role,
     });
 
-    logger.info(`New user registered: ${user.email}`);
+    logger.info(`New user registered: ${user.email} with role: ${user.role}`);
 
     createSendToken(user, 201, res);
   } catch (error) {

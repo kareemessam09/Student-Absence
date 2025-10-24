@@ -9,6 +9,7 @@ const {
   getUnreadCount,
   getNotificationsByStudent,
 } = require("../controllers/notificationController");
+const { triggerNotificationCleanup } = require("../controllers/cleanupController");
 const { verifyToken, authorize } = require("../middleware/auth");
 const {
   validateObjectId,
@@ -48,6 +49,13 @@ router.post(
   validateTeacherMessage(),
   sendTeacherMessage
 );
+router.post(
+  "/:id/respond",
+  authorize("teacher"),
+  validateObjectId(),
+  validateNotificationResponse(),
+  respondToNotification
+);
 router.put(
   "/:id/respond",
   authorize("teacher"),
@@ -58,5 +66,8 @@ router.put(
 
 // General routes
 router.put("/:id/read", validateObjectId(), markAsRead);
+
+// Manager only routes - Manual cleanup trigger
+router.delete("/cleanup", authorize("manager"), triggerNotificationCleanup);
 
 module.exports = router;

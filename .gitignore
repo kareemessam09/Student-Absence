@@ -94,3 +94,19 @@ Thumbs.db
 dist/
 build/
 public/
+
+# PM2
+.pm2/
+pm2-*.log
+
+# Uploads and backups
+uploads/
+backups/
+
+# MongoDB data
+data/
+
+# Temporary files
+tmp/
+temp/
+*.tmp

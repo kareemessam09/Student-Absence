@@ -55,7 +55,13 @@ const sendTeacherMessage = async (req, res, next) => {
 // @access  Private/Teacher
 const respondToNotification = async (req, res, next) => {
   try {
-    const { status, responseMessage } = req.body;
+    const { approved, responseMessage } = req.body;
+    
+    // Convert approved boolean to status string
+    // approved: true = student approved to leave (absent/gone)
+    // approved: false = student stays (present)
+    const status = approved ? "absent" : "present";
+    
     const notification = await notificationService.respondToNotification({
       notificationId: req.params.id,
       responderUserId: req.user.id,
@@ -69,7 +75,7 @@ const respondToNotification = async (req, res, next) => {
 
     res.status(200).json({
       status: "success",
-      message: "Response sent successfully",
+      message: "Response recorded successfully",
       data: { notification },
     });
   } catch (error) {
