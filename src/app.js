@@ -74,6 +74,26 @@ app.use(cors(corsOptions));
 // Swagger UI
 app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
+// Root endpoint
+app.get("/", (req, res) => {
+  res.status(200).json({
+    status: "success",
+    message: "Student Absence API is running",
+    version: "1.0.0",
+    endpoints: {
+      health: "/health",
+      documentation: "/api-docs",
+      auth: "/api/auth",
+      users: "/api/users",
+      students: "/api/students",
+      classes: "/api/classes",
+      notifications: "/api/notifications",
+      statistics: "/api/statistics"
+    },
+    timestamp: new Date().toISOString()
+  });
+});
+
 app.get("/health", (req, res) => {
   res.status(200).json({
     status: "success",
