@@ -12,27 +12,33 @@ const logFormat = winston.format.combine(
 // Create transports array
 const transports = [];
 
-// Only use file transports if not in serverless environment (Vercel/Lambda)
-// Check for Vercel, AWS Lambda, or if running as a serverless function
-const isServerless = process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME || process.env.LAMBDA_TASK_ROOT;
-if (!isServerless) {
-  // Ensure logs directory exists (only in non-serverless)
-  const logsDir = path.join(process.cwd(), "logs");
-  if (!fs.existsSync(logsDir)) {
-    fs.mkdirSync(logsDir, { recursive: true });
-  }
+// Only use file transports if not in serverless environment
+// Vercel sets VERCEL=1, Lambda sets AWS_LAMBDA_FUNCTION_NAME and LAMBDA_TASK_ROOT
+const isServerless = !!(process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME || process.env.LAMBDA_TASK_ROOT);
 
-  transports.push(
-    // Write all logs with level 'error' and below to error.log
-    new winston.transports.File({
-      filename: path.join("logs", "error.log"),
-      level: "error",
-    }),
-    // Write all logs to combined.log
-    new winston.transports.File({
-      filename: path.join("logs", "combined.log"),
-    })
-  );
+if (!isServerless) {
+  try {
+    // Ensure logs directory exists (only in non-serverless)
+    const logsDir = path.join(process.cwd(), "logs");
+    if (!fs.existsSync(logsDir)) {
+      fs.mkdirSync(logsDir, { recursive: true });
+    }
+
+    transports.push(
+      // Write all logs with level 'error' and below to error.log
+      new winston.transports.File({
+        filename: path.join("logs", "error.log"),
+        level: "error",
+      }),
+      // Write all logs to combined.log
+      new winston.transports.File({
+        filename: path.join("logs", "combined.log"),
+      })
+    );
+  } catch (error) {
+    // Silently fail - will use console only
+    console.log('File logging disabled (serverless environment)');
+  }
 }
 
 // Always log to console (works in serverless)
