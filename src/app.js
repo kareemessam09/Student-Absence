@@ -39,8 +39,10 @@ const app = express();
 
 app.set("trust proxy", 1);
 
-// Only create logs directory if not in serverless environment (Vercel)
-if (!process.env.VERCEL) {
+// Only create logs directory if not in serverless environment (Vercel/Lambda)
+// Check for Vercel, AWS Lambda, or if running as a serverless function
+const isServerless = process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME || process.env.LAMBDA_TASK_ROOT;
+if (!isServerless) {
   const logsDir = path.join(__dirname, "..", "logs");
   if (!fs.existsSync(logsDir)) {
     fs.mkdirSync(logsDir, { recursive: true });

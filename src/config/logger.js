@@ -12,8 +12,10 @@ const logFormat = winston.format.combine(
 // Create transports array
 const transports = [];
 
-// Only use file transports if not in serverless environment (Vercel)
-if (!process.env.VERCEL) {
+// Only use file transports if not in serverless environment (Vercel/Lambda)
+// Check for Vercel, AWS Lambda, or if running as a serverless function
+const isServerless = process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME || process.env.LAMBDA_TASK_ROOT;
+if (!isServerless) {
   // Ensure logs directory exists (only in non-serverless)
   const logsDir = path.join(process.cwd(), "logs");
   if (!fs.existsSync(logsDir)) {
