@@ -48,8 +48,7 @@ const studentSchema = new mongoose.Schema(
   }
 );
 
-// Indexes
-studentSchema.index({ studentCode: 1 });
+// Indexes for query performance (studentCode index is auto-created by unique: true)
 studentSchema.index({ class: 1 });
 studentSchema.index({ isActive: 1 });
 

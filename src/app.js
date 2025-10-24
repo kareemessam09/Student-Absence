@@ -39,9 +39,12 @@ const app = express();
 
 app.set("trust proxy", 1);
 
-const logsDir = path.join(__dirname, "..", "logs");
-if (!fs.existsSync(logsDir)) {
-  fs.mkdirSync(logsDir, { recursive: true });
+// Only create logs directory if not in serverless environment (Vercel)
+if (!process.env.VERCEL) {
+  const logsDir = path.join(__dirname, "..", "logs");
+  if (!fs.existsSync(logsDir)) {
+    fs.mkdirSync(logsDir, { recursive: true });
+  }
 }
 
 app.use(requestId);

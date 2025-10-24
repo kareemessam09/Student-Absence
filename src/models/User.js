@@ -53,7 +53,7 @@ const userSchema = new mongoose.Schema(
   }
 );
 
-userSchema.index({ email: 1 });
+// Index for query performance (email index is auto-created by unique: true)
 userSchema.index({ createdAt: -1 });
 
 userSchema.pre("save", async function (next) {
