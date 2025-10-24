@@ -100,8 +100,10 @@ const startServer = async () => {
   try {
     await connectDB();
 
-    // Initialize scheduled tasks
-    scheduleNotificationCleanup();
+    // Initialize scheduled tasks (only if not in serverless environment)
+    if (!process.env.VERCEL) {
+      scheduleNotificationCleanup();
+    }
 
     const PORT = process.env.PORT || 3000;
     const server = app.listen(PORT, () => {
@@ -135,6 +137,9 @@ const startServer = async () => {
   }
 };
 
-startServer();
+// Start server only if not in Vercel serverless environment
+if (!process.env.VERCEL) {
+  startServer();
+}
 
 module.exports = app;

@@ -110,3 +110,6 @@ data/
 tmp/
 temp/
 *.tmp
+
+# Vercel
+.vercel
