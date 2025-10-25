@@ -52,6 +52,15 @@ const userSchema = new mongoose.Schema(
       default: null,
       select: false, // Don't return by default for security
     },
+    platform: {
+      type: String,
+      enum: ['android', 'ios', null],
+      default: null,
+    },
+    deviceTokenUpdatedAt: {
+      type: Date,
+      default: null,
+    },
   },
   {
     timestamps: true,
