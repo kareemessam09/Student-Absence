@@ -40,19 +40,29 @@ const sendPushNotification = async (userId, title, body, data = {}) => {
   try {
     initFirebase();
     if (!firebaseInitialized) {
+      logger.warn('Firebase not initialized, skipping push for user:', userId);
       return { success: false, reason: 'firebase-not-configured' };
     }
 
-    const user = await User.findById(userId);
-    if (!user || !user.deviceToken) {
+    // Explicitly select deviceToken since it's marked select: false in schema
+    const user = await User.findById(userId).select('+deviceToken');
+    
+    if (!user) {
+      logger.warn('User not found, skipping push:', userId);
+      return { success: false, reason: 'user-not-found' };
+    }
+    
+    if (!user.deviceToken) {
       logger.info('No device token for user, skipping push:', userId);
       return { success: false, reason: 'no-device-token' };
     }
 
+    logger.info(`Attempting to send push notification to user ${userId} with token: ${user.deviceToken.substring(0, 20)}...`);
+
     const message = {
       token: user.deviceToken,
       notification: { title, body },
-      data: { ...StringifyData(data) },
+      data: StringifyData(data),
       android: {
         priority: 'high',
         notification: {
@@ -71,16 +81,21 @@ const sendPushNotification = async (userId, title, body, data = {}) => {
 
     const response = await admin.messaging().send(message);
 
-    // Optionally log the sent notification (stored in Notification collection as a reference)
-    try {
-      logger.info('Push notification sent', { user: userId, messageId: response });
-    } catch (e) {
-      logger.warn('Failed to persist notification log:', e.message);
-    }
+    logger.info('✅ Push notification sent successfully', { 
+      user: userId, 
+      messageId: response,
+      title,
+      body 
+    });
 
     return { success: true, messageId: response };
   } catch (error) {
-    logger.error('Failed to send push notification:', error);
+    logger.error('❌ Failed to send push notification:', {
+      userId,
+      error: error.message,
+      code: error.code,
+      stack: error.stack
+    });
 
     // Handle invalid token: remove deviceToken from user record
     if (
@@ -89,12 +104,13 @@ const sendPushNotification = async (userId, title, body, data = {}) => {
     ) {
       try {
         await User.findByIdAndUpdate(userId, { $unset: { deviceToken: '' } });
+        logger.warn('Removed invalid device token for user:', userId);
       } catch (e) {
         logger.warn('Failed to remove invalid device token for user', userId, e.message);
       }
     }
 
-    return { success: false, error: error.message };
+    return { success: false, error: error.message, code: error.code };
   }
 };
 

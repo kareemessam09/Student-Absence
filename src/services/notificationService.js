@@ -4,6 +4,7 @@ const User = require("../models/User");
 const { AppError } = require("../middleware/errorHandler");
 const { emitToUser } = require("../config/socket");
 const { sendPushNotification } = require("./pushNotificationService");
+const logger = require("../config/logger");
 
 const sendRequest = async ({ fromUserId, studentId, message }) => {
   const student = await Student.findById(studentId).populate("class");
@@ -43,7 +44,7 @@ const sendRequest = async ({ fromUserId, studentId, message }) => {
     createdAt: notification.createdAt,
   });
 
-  // Send push notification (best-effort)
+  // Send push notification (best-effort, non-blocking)
   sendPushNotification(
     teacher._id,
     '📝 New Absence Request',
@@ -56,9 +57,23 @@ const sendRequest = async ({ fromUserId, studentId, message }) => {
       className: classData.name,
       clickAction: 'FLUTTER_NOTIFICATION_CLICK',
     }
-  ).catch((err) => {
-    // swallow errors - push failures shouldn't break the request flow
-    // pushNotificationService already logs details
+  ).then((result) => {
+    if (result.success) {
+      logger.info('Push notification sent for absence request', { 
+        teacher: teacher._id, 
+        student: student.nama 
+      });
+    } else {
+      logger.warn('Push notification failed for absence request', { 
+        teacher: teacher._id, 
+        reason: result.reason || result.error 
+      });
+    }
+  }).catch((err) => {
+    logger.error('Push notification error for absence request', { 
+      teacher: teacher._id, 
+      error: err.message 
+    });
   });
 
   return notification;
@@ -115,7 +130,7 @@ const sendMessageFromTeacher = async ({
     createdAt: notification.createdAt,
   });
 
-  // Send push notification to receptionist (best-effort)
+  // Send push notification to receptionist (best-effort, non-blocking)
   sendPushNotification(
     toReceptionistId,
     '📩 New Message from Teacher',
@@ -128,7 +143,24 @@ const sendMessageFromTeacher = async ({
       className: student.class.name,
       clickAction: 'FLUTTER_NOTIFICATION_CLICK',
     }
-  ).catch(() => {});
+  ).then((result) => {
+    if (result.success) {
+      logger.info('Push notification sent for teacher message', { 
+        receptionist: toReceptionistId, 
+        student: student.nama 
+      });
+    } else {
+      logger.warn('Push notification failed for teacher message', { 
+        receptionist: toReceptionistId, 
+        reason: result.reason || result.error 
+      });
+    }
+  }).catch((err) => {
+    logger.error('Push notification error for teacher message', { 
+      receptionist: toReceptionistId, 
+      error: err.message 
+    });
+  });
 
   return notification;
 };

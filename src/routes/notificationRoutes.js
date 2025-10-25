@@ -24,6 +24,47 @@ const router = express.Router();
 // All routes are protected
 router.use(verifyToken);
 
+// Debug endpoint - Check Firebase status (manager only)
+router.get('/push-status', authorize('manager'), async (req, res) => {
+  try {
+    const { sendPushNotification } = require('../services/pushNotificationService');
+    const User = require('../models/User');
+    
+    // Check if Firebase env vars are set
+    const firebaseConfigured = !!(
+      process.env.FIREBASE_PROJECT_ID &&
+      process.env.FIREBASE_CLIENT_EMAIL &&
+      process.env.FIREBASE_PRIVATE_KEY
+    );
+    
+    // Get count of users with device tokens
+    const usersWithTokens = await User.countDocuments({ deviceToken: { $exists: true, $ne: null } });
+    
+    // Get current user's device token status
+    const currentUser = await User.findById(req.user.id).select('+deviceToken');
+    
+    res.json({
+      status: 'success',
+      firebase: {
+        configured: firebaseConfigured,
+        projectId: process.env.FIREBASE_PROJECT_ID || 'NOT_SET',
+        clientEmail: process.env.FIREBASE_CLIENT_EMAIL ? 'SET' : 'NOT_SET',
+        privateKey: process.env.FIREBASE_PRIVATE_KEY ? 'SET' : 'NOT_SET',
+      },
+      users: {
+        totalWithTokens: usersWithTokens,
+        currentUserHasToken: !!currentUser?.deviceToken,
+        currentUserToken: currentUser?.deviceToken ? `${currentUser.deviceToken.substring(0, 30)}...` : null,
+      }
+    });
+  } catch (error) {
+    res.status(500).json({
+      status: 'error',
+      message: error.message
+    });
+  }
+});
+
 // Push test route (manager only) - useful for testing push setup
 router.post('/test-push/:userId', authorize('manager'), async (req, res) => {
   try {
