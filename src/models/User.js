@@ -47,6 +47,11 @@ const userSchema = new mongoose.Schema(
     },
     passwordResetToken: String,
     passwordResetExpires: Date,
+    deviceToken: {
+      type: String,
+      default: null,
+      select: false, // Don't return by default for security
+    },
   },
   {
     timestamps: true,

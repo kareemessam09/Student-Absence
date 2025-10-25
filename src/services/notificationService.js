@@ -3,6 +3,7 @@ const Student = require("../models/Student");
 const User = require("../models/User");
 const { AppError } = require("../middleware/errorHandler");
 const { emitToUser } = require("../config/socket");
+const { sendPushNotification } = require("./pushNotificationService");
 
 const sendRequest = async ({ fromUserId, studentId, message }) => {
   const student = await Student.findById(studentId).populate("class");
@@ -40,6 +41,24 @@ const sendRequest = async ({ fromUserId, studentId, message }) => {
     class: { id: classData._id, name: classData.name },
     message: notification.message,
     createdAt: notification.createdAt,
+  });
+
+  // Send push notification (best-effort)
+  sendPushNotification(
+    teacher._id,
+    '📝 New Absence Request',
+    `${student.nama} - ${classData.name}`,
+    {
+      type: 'request',
+      notificationId: notification._id.toString(),
+      studentId: studentId.toString(),
+      studentName: student.nama,
+      className: classData.name,
+      clickAction: 'FLUTTER_NOTIFICATION_CLICK',
+    }
+  ).catch((err) => {
+    // swallow errors - push failures shouldn't break the request flow
+    // pushNotificationService already logs details
   });
 
   return notification;
@@ -95,6 +114,21 @@ const sendMessageFromTeacher = async ({
     message: notification.message,
     createdAt: notification.createdAt,
   });
+
+  // Send push notification to receptionist (best-effort)
+  sendPushNotification(
+    toReceptionistId,
+    '📩 New Message from Teacher',
+    `${student.nama} - ${notification.message}`,
+    {
+      type: 'message',
+      notificationId: notification._id.toString(),
+      studentId: studentId.toString(),
+      studentName: student.nama,
+      className: student.class.name,
+      clickAction: 'FLUTTER_NOTIFICATION_CLICK',
+    }
+  ).catch(() => {});
 
   return notification;
 };

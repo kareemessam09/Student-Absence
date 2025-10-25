@@ -42,6 +42,16 @@
    LOG_LEVEL=info
    ```
 
+   Additionally, if you want push notifications (FCM) enabled, add these Firebase environment variables (from your Firebase service account):
+
+   ```env
+   FIREBASE_PROJECT_ID=your-firebase-project-id
+   FIREBASE_CLIENT_EMAIL=your-firebase-client-email@project.iam.gserviceaccount.com
+   # Private key - newlines should be escaped as `\n`
+   FIREBASE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n"
+   FIREBASE_ANDROID_CHANNEL_ID=student_notifier_channel
+   ```
+
 4. **Deploy**
    - Click "Deploy"
    - Wait for deployment to complete (2-3 minutes)

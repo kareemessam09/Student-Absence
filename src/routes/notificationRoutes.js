@@ -24,6 +24,18 @@ const router = express.Router();
 // All routes are protected
 router.use(verifyToken);
 
+// Push test route (manager only) - useful for testing push setup
+router.post('/test-push/:userId', authorize('manager'), async (req, res) => {
+  try {
+    const { title, body } = req.body;
+    const { sendPushNotification } = require('../services/pushNotificationService');
+    const result = await sendPushNotification(req.params.userId, title || 'Test Notification', body || 'This is a test notification from backend', { type: 'test', timestamp: Date.now() });
+    res.json(result);
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 // Notification routes
 router.get("/", validatePagination(), getNotifications);
 router.get("/unread/count", getUnreadCount);
